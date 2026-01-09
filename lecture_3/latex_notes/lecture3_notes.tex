@@ -1,0 +1,255 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{mathtools}
+\usepackage{enumitem}
+\usepackage{hyperref}
+
+\setlist[itemize]{itemsep=2pt, topsep=4pt}
+
+\title{COMP3204 --- Lecture 3 Notes: Image Sampling (DFT, FFT, Sampling, Aliasing)}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Why frequency space matters in Computer Vision}
+\begin{itemize}
+  \item An image can be treated as a \textbf{2D signal}: intensity varies over \textbf{space} (pixel coordinates).
+  \item The Fourier viewpoint: represent a signal as a sum of \textbf{sinusoids} at different \textbf{frequencies}.
+  \item In images, frequency means \textbf{spatial frequency}:
+  \begin{itemize}
+    \item \textbf{Low spatial frequency}: intensity changes slowly (smooth shading, broad structure).
+    \item \textbf{High spatial frequency}: intensity changes rapidly (edges, fine texture, noise).
+  \end{itemize}
+  \item Why it is useful (as stated in the lecture material):
+  \begin{itemize}
+    \item \textbf{Understanding/analysis} of image content at different scales.
+    \item \textbf{Speeding up computation} (many operations become efficient using FFT).
+    \item \textbf{Representation properties} (e.g., shift effects become simple).
+    \item \textbf{Coding/compression} (store/keep important components).
+    \item \textbf{Recognition/understanding} (e.g., texture).
+  \end{itemize}
+\end{itemize}
+
+\section{1D Discrete Fourier Transform (DFT)}
+\subsection{Forward 1D DFT}
+\begin{itemize}
+  \item Input: $p[i]$ for $i=0,\dots,N-1$ (a sampled 1D signal).
+  \item Output: complex frequency coefficients $Fp[u]$ for $u=0,\dots,N-1$.
+  \item Definition:
+  \begin{equation}
+    Fp[u] \;=\; \frac{1}{N}\sum_{i=0}^{N-1} p[i]\;e^{-j\frac{2\pi}{N}ui}.
+  \end{equation}
+  \item Meaning of symbols:
+  \begin{itemize}
+    \item $i$: sample index (position in the signal).
+    \item $u$: frequency index (which discrete sinusoid is being measured).
+    \item $j$: imaginary unit, $j^2=-1$.
+    \item $e^{-j\theta}=\cos\theta - j\sin\theta$: complex sinusoid basis.
+  \end{itemize}
+  \item The $1/N$ scaling is chosen so that the \textbf{DC term} becomes the \textbf{average} of the samples.
+\end{itemize}
+
+\subsection{Magnitude and phase: what the complex output means}
+\begin{itemize}
+  \item Each $Fp[u]$ is complex and can be written as:
+  \[
+    Fp[u] = \operatorname{Re}(Fp[u]) + j\,\operatorname{Im}(Fp[u]).
+  \]
+  \item \textbf{Magnitude} (strength of that frequency):
+  \[
+    |Fp[u]|=\sqrt{\operatorname{Re}(Fp[u])^2+\operatorname{Im}(Fp[u])^2}.
+  \]
+  \item \textbf{Phase} (alignment/shift information):
+  \[
+    \arg(Fp[u])=\tan^{-1}\!\left(\frac{\operatorname{Im}(Fp[u])}{\operatorname{Re}(Fp[u])}\right).
+  \]
+  \item DC component:
+  \begin{itemize}
+    \item For $u=0$, $e^{-j(0)}=1$, so
+    \[
+      Fp[0]=\frac{1}{N}\sum_{i=0}^{N-1} p[i],
+    \]
+    which is the \textbf{mean value} of the signal.
+  \end{itemize}
+\end{itemize}
+
+\subsection{Inverse 1D DFT (reconstruction)}
+\begin{itemize}
+  \item You can reconstruct the original samples from all frequency coefficients:
+  \begin{equation}
+    p[i] \;=\; \sum_{u=0}^{N-1} Fp[u]\;e^{+j\frac{2\pi}{N}ui}.
+  \end{equation}
+  \item Interpretation: the signal is rebuilt by adding all sinusoidal components (including DC).
+\end{itemize}
+
+\section{Transform-pair intuition (pulse example)}
+\begin{itemize}
+  \item A short, sharp pulse in the sample domain contains many frequencies.
+  \item Key exam takeaway:
+  \begin{itemize}
+    \item \textbf{Sharp changes} in a signal require \textbf{high-frequency} components.
+    \item In images, \textbf{edges} are high-frequency phenomena.
+  \end{itemize}
+\end{itemize}
+
+\section{Reconstruction using only some frequencies}
+\begin{itemize}
+  \item If you reconstruct using only:
+  \begin{itemize}
+    \item \textbf{Low frequencies}: you keep coarse structure but lose detail (blurry/smooth).
+    \item \textbf{More frequencies}: you progressively recover sharper details.
+  \end{itemize}
+  \item Conceptual message from the lecture visuals:
+  \begin{itemize}
+    \item Low frequencies carry global structure.
+    \item High frequencies add fine detail and sharpness.
+  \end{itemize}
+\end{itemize}
+
+\section{2D DFT for images}
+\subsection{Forward 2D DFT}
+\begin{itemize}
+  \item Image samples: $P[x,y]$ for $x,y=0,\dots,N-1$.
+  \item Frequency coefficients: $FP[u,v]$, where $u$ and $v$ are horizontal/vertical spatial frequency indices.
+  \item Definition:
+  \begin{equation}
+    FP[u,v] \;=\; \frac{1}{N^2}\sum_{y=0}^{N-1}\sum_{x=0}^{N-1}
+    P[x,y]\;e^{-j\frac{2\pi}{N}(ux+vy)}.
+  \end{equation}
+  \item DC component $FP[0,0]$ equals the \textbf{average intensity} of the entire image.
+\end{itemize}
+
+\subsection{Inverse 2D DFT}
+\begin{itemize}
+  \item Reconstruction:
+  \begin{equation}
+    P[x,y] \;=\; \sum_{v=0}^{N-1}\sum_{u=0}^{N-1} FP[u,v]\;e^{+j\frac{2\pi}{N}(ux+vy)}.
+  \end{equation}
+  \item Interpretation: the image is a sum of 2D sinusoidal ``patterns'' (basis functions).
+\end{itemize}
+
+\subsection{Visualising the Fourier transform}
+\begin{itemize}
+  \item In practice, displays often show:
+  \begin{itemize}
+    \item \textbf{Magnitude} (often using a log scale so the large DC component does not dominate).
+    \item \textbf{Phase} (contains crucial alignment/structure information even if it looks unintuitive).
+  \end{itemize}
+  \item Keeping only low-frequency coefficients reconstructs a recognizable but blurry image; adding higher frequencies restores detail.
+\end{itemize}
+
+\section{FFT: fast computation of the DFT}
+\begin{itemize}
+  \item Direct DFT computation is expensive because you compute a sum for each frequency coefficient.
+  \item \textbf{FFT (Fast Fourier Transform)} computes the same DFT much faster.
+  \item Core algorithmic idea (as in the lecture material):
+  \begin{itemize}
+    \item \textbf{Divide-and-conquer}: split into smaller DFTs, then combine results efficiently (often visualised as repeated add/subtract ``butterfly'' patterns).
+  \end{itemize}
+  \item Why it matters in vision: makes frequency-domain processing feasible on real image sizes.
+\end{itemize}
+
+\section{Fourier properties used in vision}
+\subsection{Shift effect (magnitude invariance)}
+\begin{itemize}
+  \item Shifting a signal/image in space changes \textbf{phase} but preserves \textbf{magnitude}.
+  \item 1D property (conceptual form):
+  \[
+    \mathcal{F}\{p(t-\tau)\} = e^{-j\omega\tau}P(\omega).
+  \]
+  \item Since $|e^{-j\omega\tau}|=1$, the magnitude is unchanged:
+  \[
+    |\mathcal{F}\{p(t-\tau)\}| = |P(\omega)|.
+  \]
+  \item Exam implication:
+  \begin{itemize}
+    \item Magnitude-based features can be robust to translation.
+    \item Phase carries location/alignment information.
+  \end{itemize}
+\end{itemize}
+
+\subsection{Rotation}
+\begin{itemize}
+  \item Rotating an image rotates its Fourier transform by the same angle.
+  \item Intuition: orientation of structures (e.g., stripes/edges) corresponds to oriented energy in frequency space.
+\end{itemize}
+
+\section{Filtering using the Fourier transform}
+\begin{itemize}
+  \item Filtering idea: modify the frequency coefficients, then apply the inverse transform.
+  \item \textbf{Low-pass filtering}:
+  \begin{itemize}
+    \item Keep low frequencies, suppress high frequencies.
+    \item Effect: smoothing / blur, reduces fine detail and noise.
+  \end{itemize}
+  \item \textbf{High-pass filtering}:
+  \begin{itemize}
+    \item Suppress low frequencies, keep high frequencies.
+    \item Effect: emphasizes edges and fine details.
+  \end{itemize}
+\end{itemize}
+
+\section{Sampling theory}
+\subsection{What sampling is}
+\begin{itemize}
+  \item Sampling converts a continuous signal into discrete measurements.
+  \item In images: the sensor/ADC measures intensity on a discrete pixel grid.
+  \item Good sampling: enough samples to capture the fastest variations you care about.
+  \item Poor sampling: too few samples can make high-frequency content appear as a different (lower-frequency) pattern.
+\end{itemize}
+
+\subsection{Sampling in frequency domain: spectrum replication idea}
+\begin{itemize}
+  \item Lecture key relation (stated conceptually):
+  \[
+    \mathcal{F}\{x(t)\,\delta(t)\} = \mathcal{F}\{x(t)\} * \mathcal{F}\{\delta(t)\}.
+  \]
+  \item Takeaway used in sampling theory:
+  \begin{itemize}
+    \item Sampling causes \textbf{copies} of the spectrum to repeat in frequency.
+  \end{itemize}
+\end{itemize}
+
+\subsection{Nyquist sampling theorem}
+\begin{itemize}
+  \item To reconstruct a signal from samples:
+  \[
+    f_s \ge 2f_{\max},
+  \]
+  where $f_s$ is the sampling frequency and $f_{\max}$ is the highest frequency present in the original signal.
+  \item Frequency-domain interpretation:
+  \begin{itemize}
+    \item If $f_s$ is high enough, repeated spectra do \textbf{not overlap} $\Rightarrow$ reconstruction is possible.
+    \item If $f_s < 2f_{\max}$, the repeated spectra \textbf{overlap} $\Rightarrow$ aliasing occurs.
+  \end{itemize}
+  \item Practical guideline from the slides: ``two pixels for every pixel of interest'' (sample densely enough to represent the smallest detail you care about).
+\end{itemize}
+
+\section{Aliasing}
+\begin{itemize}
+  \item \textbf{Aliasing} happens when sampling is too low, causing high-frequency content to appear as lower frequency content (false patterns).
+  \item Spatial aliasing example (as shown): fine repetitive textures (e.g., blinds) can produce large-scale incorrect patterns when downsampled.
+  \item Temporal aliasing (wagon-wheel effect):
+  \begin{itemize}
+    \item Sampling in time is the frame rate.
+    \item If motion changes too much between frames, a wheel can appear to rotate backwards or stand still.
+  \end{itemize}
+  \item Conceptual avoidance (as implied by the sampling theorem material):
+  \begin{itemize}
+    \item Increase sampling rate (higher resolution / higher frame rate), and/or
+    \item Remove high frequencies before sampling (pre-filtering / anti-aliasing).
+  \end{itemize}
+\end{itemize}
+
+\section{Mentioned (not expanded in this lecture)}
+\begin{itemize}
+  \item Compressed sensing
+  \item Sparsity
+  \item Regularisation
+\end{itemize}
+
+\end{document}

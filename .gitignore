@@ -1,0 +1,3 @@
+# Ignore lecture PDFs anywhere
+**/COMP3204_Lecture*.pdf
+**/CV*.pdf
