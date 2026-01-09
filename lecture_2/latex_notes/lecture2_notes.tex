@@ -1,0 +1,292 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{enumitem}
+\usepackage{hyperref}
+
+\setlist[itemize]{leftmargin=*, itemsep=4pt, topsep=6pt}
+
+\title{COMP3204 --- Lecture 2 Notes: Image Formation \& Frequency Space}
+\date{}
+\author{}
+
+\begin{document}
+\maketitle
+
+\section{Lecture 2 Scope}
+\begin{itemize}
+  \item Topics covered in the lecture slides:
+  \begin{itemize}
+    \item What is inside an image?
+    \item Restrictions on image formation (resolution + brightness sampling)
+    \item Moving to a different representation: \textbf{Fourier / frequency domain}
+  \end{itemize}
+\end{itemize}
+
+\section{What is Inside an Image? (Digital Image Representation)}
+\begin{itemize}
+  \item \textbf{Image as a matrix}
+  \begin{itemize}
+    \item A grayscale image can be treated as an \textbf{$N \times N$ matrix} of numbers (pixel intensities).
+  \end{itemize}
+
+  \item \textbf{Pixel values and bit-depth}
+  \begin{itemize}
+    \item In these slides, each pixel is stored as an \textbf{8-bit unsigned integer}.
+    \item \textbf{8-bit} $\Rightarrow$ there are $2^8 = 256$ possible values.
+    \item \textbf{Unsigned} $\Rightarrow$ values are non-negative.
+    \item Therefore pixel intensity range: \textbf{$[0, 255]$}.
+    \item Bits are weighted by powers of 2:
+    \[
+      \text{value}=\sum_{k=0}^{7} b_k 2^k,\quad b_k\in\{0,1\}
+    \]
+    where $b_0$ is the \textbf{least significant bit (LSB)} and $b_7$ is the \textbf{most significant bit (MSB)}.
+  \end{itemize}
+
+  \item \textbf{Bit-plane decomposition}
+  \begin{itemize}
+    \item A \textbf{bit-plane} is the binary image formed by taking one fixed bit position from every pixel.
+    \item Visual interpretation from the slide examples:
+    \begin{itemize}
+      \item Higher-order bits (especially the \textbf{MSB}) contain most of the \textbf{recognisable structure}.
+      \item Lower-order bits (near the \textbf{LSB}) often look \textbf{noise-like}.
+      \item Some mid-level planes can capture effects like \textbf{lighting variation}.
+    \end{itemize}
+    \item Exam takeaway: \textbf{Most perceptual content is carried by higher-order bits.}
+  \end{itemize}
+\end{itemize}
+
+\section{Restrictions on Image Formation}
+\begin{itemize}
+  \item \textbf{Resolution (spatial sampling)}
+  \begin{itemize}
+    \item If an image is sampled on an $N \times N$ grid, then $N$ controls spatial detail.
+    \item Low $N$ (e.g.\ $64\times64$): blocky, detail is lost.
+    \item Higher $N$ (e.g.\ $128\times128$, $256\times256$): more detail preserved.
+    \item Trade-off stated in slides:
+    \begin{itemize}
+      \item Larger $N$ increases storage and computation.
+      \item Motivating question: \textbf{How do we choose an appropriate value for $N$?}
+    \end{itemize}
+  \end{itemize}
+
+  \item \textbf{Brightness sampling (intensity quantisation)}
+  \begin{itemize}
+    \item Brightness is discretised by limiting intensity to a finite set of values (here: 0--255).
+    \item Key framing from slides: \textbf{sampling affects both space and brightness, and is not as simple as it appears.}
+  \end{itemize}
+\end{itemize}
+
+\section{Frequency Viewpoint: Waves and Why Fourier Matters}
+\begin{itemize}
+  \item \textbf{Waves}
+  \begin{itemize}
+    \item A sine/cosine wave is a repeating pattern over a variable (often time).
+    \item For images, we later generalise this idea to \textbf{2D patterns} over spatial coordinates $(x,y)$.
+  \end{itemize}
+
+  \item \textbf{Complex exponential representation}
+  \begin{itemize}
+    \item A compact way to represent sinusoids is via the complex exponential:
+    \[
+      e^{j\omega t} = \cos(\omega t) + j\sin(\omega t)
+    \]
+    \item Interpretation (as in the diagram):
+    \begin{itemize}
+      \item $\cos(\omega t)$ is the real-axis component,
+      \item $\sin(\omega t)$ is the imaginary-axis component,
+      \item the vector rotates in the complex plane as $t$ changes.
+    \end{itemize}
+  \end{itemize}
+
+  \item \textbf{Period and frequency}
+  \begin{itemize}
+    \item If a pattern repeats every $T$ seconds (period), its frequency is:
+    \[
+      \xi = \frac{1}{T}
+    \]
+    \item High frequency $\Rightarrow$ repeats quickly; low frequency $\Rightarrow$ repeats slowly.
+  \end{itemize}
+\end{itemize}
+
+\section{Fourier Transform: From Time/Space Domain to Frequency Domain}
+\begin{itemize}
+  \item \textbf{Core idea (Fourier)}
+  \begin{itemize}
+    \item Signals can be expressed as sums of sinusoids at different frequencies.
+  \end{itemize}
+
+  \item \textbf{Fourier transform (definition used in slides)}
+  \begin{itemize}
+    \item For a signal $p(t)$:
+    \[
+      F_p(\omega) = \int_{-\infty}^{\infty} p(t)\,e^{-j\omega t}\,dt
+    \]
+    \item This produces a complex-valued function telling how much of each angular frequency $\omega$ is present.
+    \item The exponential can be expanded as:
+    \[
+      e^{-j\omega t}=\cos(\omega t)-j\sin(\omega t)
+    \]
+    (so the transform measures cosine and sine content, packaged together).
+  \end{itemize}
+
+  \item \textbf{Angular frequency vs ordinary frequency}
+  \begin{itemize}
+    \item Relationship:
+    \[
+      \omega = 2\pi \xi
+    \]
+  \end{itemize}
+
+  \item \textbf{Inverse Fourier transform (reconstruction)}
+  \begin{itemize}
+    \item Recover the original signal by integrating over all frequencies:
+    \[
+      p(t)=\frac{1}{2\pi}\int_{-\infty}^{\infty} F_p(\omega)\,e^{j\omega t}\,d\omega
+    \]
+    \item Interpretation: $p(t)$ is rebuilt by summing all sinusoidal components weighted by $F_p(\omega)$.
+  \end{itemize}
+
+  \item \textbf{Equivalent form in terms of $\xi$ (cycles per unit time)}
+  \begin{itemize}
+    \item Slides also show:
+    \[
+      F_p(\xi)=\int_{-\infty}^{\infty} p(t)\,e^{-j2\pi \xi t}\,dt,
+      \qquad
+      p(t)=\int_{-\infty}^{\infty} F_p(\xi)\,e^{j2\pi \xi t}\,d\xi
+    \]
+    \item Same concept; the factor $2\pi$ moves into the exponent.
+  \end{itemize}
+
+  \item \textbf{Key conceptual mapping highlighted in slides}
+  \begin{itemize}
+    \item Fourier transform: move from a representation where components are ``mixed'' to one where frequency components are separated/identifiable.
+    \item Inverse transform: combine frequency components to reconstruct the original.
+  \end{itemize}
+\end{itemize}
+
+\section{Worked Example in Slides: Rectangular Pulse $\rightarrow$ Fourier Transform}
+\begin{itemize}
+  \item \textbf{Signal}
+  \begin{itemize}
+    \item A rectangular pulse $p(t)$ with amplitude $1$ over a finite window and $0$ elsewhere.
+  \end{itemize}
+
+  \item \textbf{How the integral is evaluated (the key slide step)}
+  \begin{itemize}
+    \item Start:
+    \[
+      F_p(\omega)=\int_{-\infty}^{\infty}p(t)e^{-j\omega t}\,dt
+    \]
+    \item Since $p(t)=0$ outside the pulse duration, the integral reduces to where $p(t)=1$:
+    \[
+      F_p(\omega)=\int_{-T/2}^{T/2} e^{-j\omega t}\,dt
+    \]
+    \item Integrate:
+    \[
+      \int e^{-j\omega t}dt = \frac{e^{-j\omega t}}{-j\omega}
+    \]
+    \item Apply limits:
+    \[
+      F_p(\omega)=\left[\frac{e^{-j\omega t}}{-j\omega}\right]_{-T/2}^{T/2}
+      =
+      \frac{e^{-j\omega (T/2)}-e^{j\omega (T/2)}}{-j\omega}
+    \]
+    \item Use $e^{-ja}-e^{ja}=-2j\sin(a)$:
+    \[
+      F_p(\omega)=\frac{2\sin(\omega T/2)}{\omega}
+    \]
+  \end{itemize}
+\end{itemize}
+
+\section{Reconstruction Intuition (Inverse Transform Visualisation in Slides)}
+\begin{itemize}
+  \item Each frequency $\omega$ contributes an oscillatory component.
+  \item Adding more frequencies (integrating over a wider range of $\omega$) improves the reconstruction of the original pulse.
+  \item Slide illustration shows contributions for specific $\omega$ values and how combining them approximates the pulse.
+\end{itemize}
+
+\section{Complex Output: Magnitude and Phase}
+\begin{itemize}
+  \item \textbf{Fourier outputs are complex}
+  \[
+    F_p(\omega)=\operatorname{Re}(F_p(\omega)) + j\,\operatorname{Im}(F_p(\omega))
+  \]
+
+  \item \textbf{Magnitude}
+  \begin{itemize}
+    \item Measures the strength of frequency $\omega$:
+    \[
+      |F_p(\omega)|=\sqrt{\operatorname{Re}(F_p(\omega))^2+\operatorname{Im}(F_p(\omega))^2}
+    \]
+  \end{itemize}
+
+  \item \textbf{Phase}
+  \begin{itemize}
+    \item Encodes alignment/shift information of components:
+    \[
+      \arg(F_p(\omega))=\tan^{-1}\left(\frac{\operatorname{Im}(F_p(\omega))}{\operatorname{Re}(F_p(\omega))}\right)
+    \]
+  \end{itemize}
+\end{itemize}
+
+\section{Example in Slides: Fourier Transform of a Musical Chord}
+\begin{itemize}
+  \item A chord is a mixture of multiple frequencies.
+  \item Its Fourier transform shows multiple components corresponding to the tones/harmonics present.
+\end{itemize}
+
+\section{Why Phase Matters (Highly Examinable Slide Result)}
+\begin{itemize}
+  \item Slide demonstration: reconstruct images by mixing
+  \begin{itemize}
+    \item magnitude from one image and phase from another.
+  \end{itemize}
+  \item Observation: the reconstructed image tends to resemble the image that provided the \textbf{phase} (structure is strongly phase-driven in this example).
+  \item Exam takeaway:
+  \begin{itemize}
+    \item \textbf{Magnitude} $\Rightarrow$ ``how much of each frequency''
+    \item \textbf{Phase} $\Rightarrow$ ``where/structure alignment'' (crucial for recognisable reconstruction)
+  \end{itemize}
+\end{itemize}
+
+\section{Fourier for Reconstruction / Coding (Compression Intuition in Slides)}
+\begin{itemize}
+  \item Slide pipeline: transform $\rightarrow$ keep/encode selected components $\rightarrow$ inverse transform.
+  \item Slide example: keeping only a small fraction of transform components (e.g.\ \textbf{5\%}) can still yield a visually close reconstruction, with an error image showing what was lost.
+\end{itemize}
+
+\section{Main Slide Summary Points}
+\begin{itemize}
+  \item \textbf{Sampling is not as simple as it appears.}
+  \item \textbf{Sampling affects space and brightness.}
+  \item \textbf{Fourier helps us understand frequency.}
+  \item \textbf{Fourier enables coding (compression) and more.}
+  \item Next framing in slides: Fourier will be used to understand sampling.
+\end{itemize}
+
+\section{Other Transforms Mentioned (Names Only; Not Expanded)}
+\begin{itemize}
+  \item Discrete Cosine (Sine) Transform
+  \item Discrete Hartley Transform
+  \item Wavelet families/types (named in slides): continuous, discrete, complex, stationary, dual, Haar, Daubechies, Morlet, Gabor, etc.
+  \item Other named transform families: curvelets, shearlets, bandelets, contourlets, fresnelets, chirplets, noiselets, \ldots
+\end{itemize}
+
+\section{Wavelet Transform (What the Slide Example Shows)}
+\begin{itemize}
+  \item Slides show an example of a \textbf{2D discrete wavelet transform} used in \textbf{JPEG2000}.
+  \item Output appears as multiple sub-images capturing information at different:
+  \begin{itemize}
+    \item \textbf{scales} (coarse-to-fine), and
+    \item \textbf{detail patterns} (different types of local changes).
+  \end{itemize}
+  \item Key intuition consistent with the slide visual:
+  \begin{itemize}
+    \item wavelets can represent content in a way that is both \textbf{spatially localised} (where it happens)
+    and \textbf{scale-sensitive} (coarse structure vs fine detail).
+  \end{itemize}
+\end{itemize}
+
+\end{document}
